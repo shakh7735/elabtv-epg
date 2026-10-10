@@ -1,0 +1,57 @@
+# Гиды для внешних плейлистов ElabTV. Приложение кладёт названия каналов своего плейлиста в
+# lists/<отпечаток>.txt — коммит запускает сборку; кроме того, все гиды пересобираются раз в 6 часов.
+# Готовые гиды — в ветке guides, она перезаписывается целиком, история от гидов не растёт:
+# https://raw.githubusercontent.com/shakh7735/elabtv-epg/guides/<отпечаток>.xml.gz
+name: Guides
+
+on:
+  schedule:
+    - cron: "47 */6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["lists/**", "tools/**", "sources.json", "map.json", ".github/workflows/build.yml"]
+
+permissions:
+  contents: write
+
+# Каждый прогон собирает все списки, поэтому ждущий в очереди заменяет предыдущий ждущий
+concurrency:
+  group: guides
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Собрать гиды
+        run: python3 tools/build.py .cache out
+      - name: Убрать устаревшие списки
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain lists)" ]; then
+            git add -A lists
+            git commit -q -m "Устаревшие списки"
+            git pull -q --rebase origin main && git push -q origin main || echo "не вышло — уберутся в следующий раз"
+          fi
+      - name: Выложить в ветку guides
+        run: |
+          mkdir -p out && cd out
+          cat > README.md <<'MD'
+          # Гиды ElabTV для внешних плейлистов
+
+          Собираются автоматически (workflow Guides в ветке main) — руками не править.
+          <отпечаток>.xml.gz — гид, <отпечаток>.txt — откуда какой канал взял программу.
+          MD
+          git init -q -b guides
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Гиды $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" guides

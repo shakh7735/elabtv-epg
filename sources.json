@@ -1,0 +1,9 @@
+{
+  "_comment": "Источники программы. primary — основной: при равной годности выигрывает он. Те же, что у встроенного гида в online-radio-m3u (epg/sources.json).",
+  "sources": {
+    "epgone": "http://epg.one/epg.xml.gz",
+    "iptvx": "https://iptvx.one/epg/epg_lite.xml.gz",
+    "antifriz": "https://antifriz.tv/storage/epg/xmltv.xml.gz"
+  },
+  "primary": "epgone"
+}
