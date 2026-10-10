@@ -147,7 +147,8 @@ def read_lists():
             fresh = NOW - dt.datetime.fromisoformat(seen).replace(tzinfo=dt.timezone.utc) < STALE
         except ValueError:
             fresh = False
-        names = [l.strip()[:MAX_NAME_LENGTH] for l in lines if l.strip() and not l.startswith("#")]
+        # Служебная только «# seen:» — с «#» начинаются и названия каналов («#dabeiTV HD DE»)
+        names = [l.strip()[:MAX_NAME_LENGTH] for l in lines if l.strip() and not l.startswith("# seen:")]
         if not LIST_NAME.match(name) or not fresh or not names or len(lists) >= MAX_LISTS:
             print(f"удаляю список {name}: {'устарел' if fresh is False else 'не подходит'}")
             os.remove(path)
